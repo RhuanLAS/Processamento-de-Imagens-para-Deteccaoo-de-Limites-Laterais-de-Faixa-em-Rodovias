@@ -1,4 +1,5 @@
 import os
+
 def change_filename(way):
     entries = os.listdir(way)
     #entries = sorted(os.listdir(way))
@@ -15,6 +16,5 @@ def change_filename(way):
 
     return entries
     
-if __name__ == '__main__':
-    way = f'{os.getcwd()}/data/'
-    change_filename(way)
+way = f'{os.getcwd()}/data/'
+change_filename(way)
