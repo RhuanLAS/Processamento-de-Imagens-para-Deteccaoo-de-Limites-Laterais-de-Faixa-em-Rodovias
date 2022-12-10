@@ -4,12 +4,7 @@ import matplotlib.pylab as plt
 import numpy as np
 from filename_script import change_filename
 
-def main():
-    way = f'{os.getcwd()}/data/'
-    entries = change_filename(way)
-    
-    image = cv.imread(f'{way}{entries[4]}')
-    print(image.shape)
+def process_frame(image):
     height = image.shape[0]
     width = image.shape[1]
 
@@ -19,26 +14,39 @@ def main():
         (width/1.5, height)
     ]
     
-    canny_image = cv.Canny(image, 100, 200)
+    canny_image = cv.Canny(image, 170, 200)
     
     cropped_image = region_of_interest(canny_image, np.array([region_of_interest_vertices], np.int32))
     
     lines = cv.HoughLinesP(
         cropped_image,
-        rho = 6,
-        theta = np.pi/60,
-        threshold = 160,
+        rho = 4,
+        theta = np.pi/180,
+        threshold = 200,
         lines = np.array([]),
         minLineLength = 40,
         maxLineGap = 25
     )
 
-    image_with_line = drow_the_lines(image, lines)
+    return draw_the_lines(image, lines)
+    
+def main():
+    path = f'{os.getcwd()}/data/'
+    entries = change_filename(path)
+    
+    array_image = []
+    
+    for image in entries:
+        array_image.append(process_frame(cv.imread(f'{path}{image}')))
+    
 
-    plt.imshow(image_with_line)
-    plt.show()
+    for img in array_image:
+        plt.clf()
+        plt.imshow(img)
+        plt.pause(0.05)
+        # plt.draw()
 
-def drow_the_lines(img, lines):
+def draw_the_lines(img, lines):
     img = np.copy(img)
     blank = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
 
