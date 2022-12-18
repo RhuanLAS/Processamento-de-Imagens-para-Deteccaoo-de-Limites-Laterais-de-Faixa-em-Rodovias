@@ -1,7 +1,8 @@
 import os
 import cv2 as cv
-import matplotlib.pylab as plt
 import numpy as np
+import matplotlib.pylab as plt
+
 
 def region_of_interest(img, v):
     mask = np.zeros_like(img)
@@ -12,11 +13,12 @@ def region_of_interest(img, v):
 
 def main():
     path = f'{os.getcwd()}/data'
+    old_angles = []
 
     for i in range(len(os.listdir(path))):
         
         # Lendo a imagem
-        img = cv.imread(f'{path}/{i}.png', cv.IMREAD_GRAYSCALE)
+        img = cv.imread(f'{path}/{i}.png')
 
         # Obtendo height e width da imagem
         height, width = img.shape[:2]
@@ -42,14 +44,6 @@ def main():
             threshold2 = 200
         )
 
-        # ! Teste
-        # l = np.array([
-        #     [417, 373],
-        #     [556, 224],
-        #     [566, 220],
-        #     [433, 373]
-        # ], dtype=np.int32)
-
         # Gera uma imagem apenas com os valores na ROI
         cropped_img = region_of_interest(
             edges_img, 
@@ -62,7 +56,6 @@ def main():
             rho = 4,
             theta = np.pi/180,
             threshold = 100,
-            lines = np.array([]),
             minLineLength = 50,
             maxLineGap = 10
         )
@@ -77,9 +70,18 @@ def main():
             for line in lines:
                 for x1,y1,x2,y2 in line:
                     line_angle = (y2 - y1)/(x2 - x1)
-
-                    if -0.4 <= line_angle <= 0.4:
-                        continue
+                    
+                    if len(old_angles) <= 1:
+                        if -0.4 <= line_angle <= 0.4:
+                            continue
+                    else:
+                        good_angle = False
+                        for oa in old_angles:
+                            if oa - 0.2 <= line_angle <= oa + 0.2:
+                                good_angle = True
+                                break
+                        if not good_angle:
+                            continue
 
                     not_group_yet = True
                     for angle in line_groups.keys():
@@ -91,24 +93,22 @@ def main():
                     if len(line_groups) == 0 or not_group_yet:
                         line_groups[line_angle] = [[x1, y1, x2, y2]]
 
-            for k, line_groups_val in line_groups.items():
-                first_point = [0, 0]
-                second_point = [0, 0]
+            old_angles.clear()
+            for _, line_groups_val in line_groups.items():
+                sum = [0 for _ in range(4)]
                 for l in line_groups_val:
-                    first_point[0] += l[0]
-                    first_point[1] += l[1]
-                    second_point[0] += l[2]
-                    second_point[1] += l[3]
-                
-                first_point[0] = int(first_point[0] / len(line_groups_val))
-                first_point[1] = int(first_point[1] / len(line_groups_val))
-                second_point[0] = int(second_point[0] / len(line_groups_val))
-                second_point[1] = int(second_point[1] / len(line_groups_val))
+                    for index_l in range(len(l)):
+                        sum[index_l] += l[index_l]
 
-                line_image = cv.line(line_image, tuple(first_point), tuple(second_point),(255,0,0),5)
+                for index_sum in range(len(sum)):
+                    sum[index_sum] = int(sum[index_sum] / len(line_groups_val))
+
+                old_angles.append((sum[3] - sum[1]) / (sum[2] - sum[0]))
+
+                line_image = cv.line(line_image, (sum[0], sum[1]), (sum[2], sum[3]), (0,255,0, 1), 5)
 
             # Colocando as linhas na imagem original
-            lines_edges = cv.addWeighted(img, 0.8, line_image, 1, 1)
+            lines_edges = cv.addWeighted(img, 0.5, line_image, 4, 4)
 
             plt.clf()
             plt.imshow(lines_edges)
